@@ -38,3 +38,29 @@ def verify_telegram_data(data: dict) -> bool:
     ).hexdigest()
     
     return calculated_hash == received_hash
+
+def verify_webapp_data(init_data: str) -> bool:
+    """
+    Verifies data from Telegram WebApp (initData).
+    """
+    try:
+        from urllib.parse import parse_qsl
+        params = dict(parse_qsl(init_data))
+        if "hash" not in params:
+            return False
+        
+        received_hash = params.pop("hash")
+        
+        # Sort keys
+        keys = sorted(params.keys())
+        data_check_string = "\n".join([f"{k}={params[k]}" for k in keys])
+        
+        # Secret key
+        import hmac
+        import hashlib
+        secret_key = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
+        calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+        
+        return calculated_hash == received_hash
+    except Exception:
+        return False

@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import StreamingResponse
-from .auth import verify_telegram_data
+from .auth import verify_telegram_data, verify_webapp_data
 from .chat import check_safety, stream_chat
 from .db import db
 from .alerts import send_admin_alert
@@ -38,6 +38,52 @@ async def telegram_auth(request: Request):
     }, merge=True)
     
     return {"status": "success", "user_id": user_id}
+
+@app.post("/api/auth/telegram-miniapp")
+async def telegram_miniapp_auth(request: Request):
+    data = await request.json()
+    init_data = data.get("initData")
+    if not verify_webapp_data(init_data):
+        raise HTTPException(status_code=400, detail="Invalid WebApp signature")
+    
+    from urllib.parse import parse_qsl
+    params = dict(parse_qsl(init_data))
+    user_json = json.loads(params.get("user", "{}"))
+    user_id = str(user_json.get("id"))
+    
+    # Check if user exists and has phone
+    user_doc = db.collection("users").document(user_id).get()
+    has_phone = False
+    if user_doc.exists:
+        has_phone = "phone_number" in user_doc.to_dict()
+    else:
+        # Create user profile
+        db.collection("users").document(user_id).set({
+            "telegram_id": user_json.get("id"),
+            "first_name": user_json.get("first_name"),
+            "last_name": user_json.get("last_name"),
+            "username": user_json.get("username"),
+            "created_at": firestore.SERVER_TIMESTAMP
+        })
+    
+    return {"status": "success", "user_id": user_id, "has_phone": has_phone}
+
+@app.post("/api/auth/save-phone")
+async def save_phone(request: Request):
+    data = await request.json()
+    user_id = str(data.get("user_id"))
+    contact = data.get("contact", {})
+    phone_number = contact.get("phone_number")
+    
+    if not phone_number:
+        raise HTTPException(status_code=400, detail="No phone number provided")
+        
+    db.collection("users").document(user_id).update({
+        "phone_number": phone_number,
+        "updated_at": firestore.SERVER_TIMESTAMP
+    })
+    
+    return {"status": "success"}
 
 @app.post("/api/chat")
 async def chat_endpoint(request: Request):
