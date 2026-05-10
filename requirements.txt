@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pydantic
+google-generativeai
+firebase-admin
+python-dotenv
+requests
+python-jose[cryptography]
