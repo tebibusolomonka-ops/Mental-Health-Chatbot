@@ -1,9 +1,9 @@
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import StreamingResponse
-from api.auth import verify_telegram_data
-from api.chat import check_safety, stream_chat
-from api.db import db
-from api.alerts import send_admin_alert
+from .auth import verify_telegram_data
+from .chat import check_safety, stream_chat
+from .db import db
+from .alerts import send_admin_alert
 import json
 import asyncio
 
