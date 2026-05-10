@@ -45,8 +45,8 @@ export default function Home() {
         const detail = await response.json();
         setError(`ምዝገባው አልተሳካም: ${detail.detail || 'የማይታወቅ ስህተት'}`);
       }
-    } catch (err) {
-      setError('ግንኙነት ተቋርጧል። እባክዎን ኢንተርኔትዎን አረጋግጠው እንደገና ይሞክሩ።');
+    } catch (err: any) {
+      setError(`የግንኙነት ስህተት: ${err.message || 'ሊገናኝ አልቻለም'}`);
     } finally {
       setIsAuthenticating(false);
     }
