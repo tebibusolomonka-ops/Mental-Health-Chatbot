@@ -73,6 +73,15 @@ async def check_safety(message: str):
         return {"is_critical": False, "reason": "error"}
 
 def stream_chat(message: str, history=None):
+    if message.lower() == "list models":
+        try:
+            models = [m.name for m in genai.list_models()]
+            yield f"Available models: {', '.join(models)}"
+            return
+        except Exception as e:
+            yield f"Error listing models: {e}"
+            return
+
     model = get_chat_model()
     if not model:
         yield "ይቅርታ፣ የ AI አገልግሎት ለጊዜው አልተገኘም። እባክዎን ቆይተው ይሞክሩ።"
