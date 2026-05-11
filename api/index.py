@@ -18,7 +18,11 @@ CRITICAL_RESPONSE_AMHARIC = """
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok"}
+    db_status = "ALIVE" if db is not None else "DEAD (Check your FIREBASE_SERVICE_ACCOUNT_JSON)"
+    return {
+        "status": "ok",
+        "database": db_status
+    }
 
 @app.post("/api/auth/telegram-miniapp")
 async def telegram_miniapp_auth(request: Request):
