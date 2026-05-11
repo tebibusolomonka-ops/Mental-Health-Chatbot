@@ -121,7 +121,7 @@ export default function ChatPage() {
       >
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-50">
-            <p className="text-xl">ሰላም {user?.first_name}! ዛሬ በምን ላግዝህ እችላለሁ?</p>
+            <p className="text-xl text-white font-bold">ሰላም {user?.first_name || 'ወዳጄ'}! ዛሬ በምን ላግዝህ እችላለሁ?</p>
             <div className="grid grid-cols-1 gap-2 max-w-xs">
               <button onClick={() => setInput('ደስተኛ አይደለሁም')} className="p-2 border border-white/10 rounded-xl hover:bg-white/5 text-sm">ደስተኛ አይደለሁም</button>
               <button onClick={() => setInput('ጭንቀት ይሰማኛል')} className="p-2 border border-white/10 rounded-xl hover:bg-white/5 text-sm">ጭንቀት ይሰማኛል</button>

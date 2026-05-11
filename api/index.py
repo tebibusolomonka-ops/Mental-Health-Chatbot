@@ -40,10 +40,12 @@ async def telegram_miniapp_auth(request: Request):
         if not user_id or user_id == "None":
             raise HTTPException(status_code=400, detail="Invalid User ID in Telegram data")
 
+        if not db:
+            raise HTTPException(status_code=500, detail="Database not initialized. Please check FIREBASE_SERVICE_ACCOUNT_JSON in Vercel.")
+
         has_phone = False
-        if db:
-            try:
-                user_doc = db.collection("users").document(user_id).get()
+        try:
+            user_doc = db.collection("users").document(user_id).get()
                 if user_doc.exists:
                     has_phone = "phone_number" in user_doc.to_dict()
                 else:
@@ -63,10 +65,8 @@ async def telegram_miniapp_auth(request: Request):
     except HTTPException as he:
         raise he
     except Exception as e:
-        # This will return the ACTUAL error message to the screen so we can see it
-        error_detail = f"SERVER CRASH: {str(e)}\n{traceback.format_exc()}"
-        print(error_detail)
-        raise HTTPException(status_code=500, detail=error_detail)
+        print(f"Auth Error: {e}")
+        raise HTTPException(status_code=500, detail="ምዝገባው አልተሳካም። እባክዎን ቆይተው እንደገና ይሞክሩ።")
 
 @app.post("/api/chat")
 async def chat_endpoint(request: Request):
@@ -111,8 +111,17 @@ async def chat_endpoint(request: Request):
             return {"response": CRITICAL_RESPONSE_AMHARIC, "is_critical": True}
         
         # 2. Regular Chat
+        user_name = "ተጠቃሚ"
+        if db and user_id and user_id != "guest_user":
+            try:
+                user_doc = db.collection("users").document(str(user_id)).get()
+                if user_doc.exists:
+                    user_name = user_doc.to_dict().get("first_name", "ተጠቃሚ")
+            except:
+                pass
+
         def generate():
-            for chunk in stream_chat(message):
+            for chunk in stream_chat(message, user_name=user_name):
                 yield chunk
                 
         return StreamingResponse(generate(), media_type="text/event-stream")

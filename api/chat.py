@@ -16,8 +16,8 @@ def get_client():
         print(f"FAILED TO INITIALIZE GENAI CLIENT: {e}")
         return None
 
-# Preferred models based on diagnostic results
-MODEL_NAMES = ["gemini-flash-latest", "gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash"]
+# Preferred models based on your diagnostic results
+MODEL_NAMES = ["gemini-flash-latest", "gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-pro-latest"]
 
 SAFETY_PROMPT = """
 You are a specialized safety classifier for an Ethiopian mental health chatbot.
@@ -61,11 +61,13 @@ async def check_safety(message: str):
             return {"is_critical": False, "reason": str(e)}
     return {"is_critical": False, "reason": "failed"}
 
-def stream_chat(message: str, history=None):
+def stream_chat(message: str, user_name: str = "ተጠቃሚ", history=None):
     client = get_client()
     if not client:
         yield "ይቅርታ፣ አገልግሎቱ ለጊዜው ተቋርጧል።"
         return
+
+    personalized_instruction = CHAT_SYSTEM_INSTRUCTION + f"\nከተጠቃሚው ጋር ስታወራ ስሙን ጥቀስ። የተጠቃሚው ስም፡ {user_name} ነው።"
 
     for model_name in MODEL_NAMES:
         try:
@@ -73,7 +75,7 @@ def stream_chat(message: str, history=None):
                 model=model_name,
                 contents=message,
                 config=types.GenerateContentConfig(
-                    system_instruction=CHAT_SYSTEM_INSTRUCTION
+                    system_instruction=personalized_instruction
                 )
             )
             for chunk in response:
