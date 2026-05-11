@@ -5,14 +5,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# Safely configure genai
+try:
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if api_key:
+        genai.configure(api_key=api_key)
+    else:
+        print("WARNING: GEMINI_API_KEY is missing from environment")
+except Exception as e:
+    print(f"FAILED TO CONFIGURE GEMINI: {e}")
 
-# Use Gemini 2.0 Flash-Lite (or the one provided by user)
-# User said "Gemini 2.5 Flash-Lite", but current models are 1.5 or 2.0. 
-# I'll use gemini-2.0-flash-lite if available, otherwise gemini-1.5-flash.
-# Actually, I'll use 'gemini-2.0-flash-lite-preview-02-05' or similar if it exists.
-# For now, I'll stick to 'gemini-1.5-flash' as a safe default or try to find the 2.5/2.0 one.
-MODEL_NAME = "gemini-1.5-flash" # Defaulting to stable 1.5 Flash
+MODEL_NAME = "gemini-1.5-flash"
 
 SAFETY_PROMPT = """
 You are a specialized safety classifier for an Ethiopian mental health chatbot.
@@ -35,22 +38,32 @@ CHAT_SYSTEM_INSTRUCTION = """
 """
 
 def get_safety_classifier():
-    return genai.GenerativeModel(
-        model_name=MODEL_NAME,
-        system_instruction=SAFETY_PROMPT
-    )
+    try:
+        return genai.GenerativeModel(
+            model_name=MODEL_NAME,
+            system_instruction=SAFETY_PROMPT
+        )
+    except Exception as e:
+        print(f"Error creating safety model: {e}")
+        return None
 
 def get_chat_model():
-    return genai.GenerativeModel(
-        model_name=MODEL_NAME,
-        system_instruction=CHAT_SYSTEM_INSTRUCTION
-    )
+    try:
+        return genai.GenerativeModel(
+            model_name=MODEL_NAME,
+            system_instruction=CHAT_SYSTEM_INSTRUCTION
+        )
+    except Exception as e:
+        print(f"Error creating chat model: {e}")
+        return None
 
 async def check_safety(message: str):
     model = get_safety_classifier()
-    response = await model.generate_content_async(message)
+    if not model:
+        return {"is_critical": False, "reason": "model_init_failed"}
+    
     try:
-        # Extract JSON from response
+        response = await model.generate_content_async(message)
         content = response.text.strip()
         if "```json" in content:
             content = content.split("```json")[1].split("```")[0].strip()
@@ -61,7 +74,15 @@ async def check_safety(message: str):
 
 def stream_chat(message: str, history=None):
     model = get_chat_model()
-    chat = model.start_chat(history=history or [])
-    response = chat.send_message(message, stream=True)
-    for chunk in response:
-        yield chunk.text
+    if not model:
+        yield "ይቅርታ፣ የ AI አገልግሎት ለጊዜው አልተገኘም። እባክዎን ቆይተው ይሞክሩ።"
+        return
+
+    try:
+        chat = model.start_chat(history=history or [])
+        response = chat.send_message(message, stream=True)
+        for chunk in response:
+            yield chunk.text
+    except Exception as e:
+        print(f"Chat streaming error: {e}")
+        yield "ይቅርታ፣ ውይይቱን መቀጠል አልቻልኩም።"

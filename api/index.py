@@ -46,6 +46,9 @@ async def telegram_miniapp_auth(request: Request):
     if not verify_webapp_data(init_data):
         raise HTTPException(status_code=400, detail="Invalid WebApp signature")
     
+    if db is None:
+        raise HTTPException(status_code=500, detail="Firebase Database failed to initialize. Please check your FIREBASE_SERVICE_ACCOUNT_JSON on Vercel.")
+    
     from urllib.parse import parse_qsl
     params = dict(parse_qsl(init_data))
     user_json = json.loads(params.get("user", "{}"))
@@ -93,6 +96,10 @@ async def chat_endpoint(request: Request):
     
     if not message or not user_id:
         raise HTTPException(status_code=400, detail="Missing message or user_id")
+    
+    if db is None:
+        # Fallback to chat without DB if needed, but safety check might need it
+        pass 
     
     # 1. Safety Check
     safety_result = await check_safety(message)
