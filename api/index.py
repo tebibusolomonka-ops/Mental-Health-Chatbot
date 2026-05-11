@@ -16,6 +16,10 @@ CRITICAL_RESPONSE_AMHARIC = """
 ህይወትዎ ዋጋ አለው፣ ብቻዎን አይደሉም።
 """
 
+@app.get("/api")
+def api_root():
+    return {"message": "API is Working"}
+
 @app.get("/api/health")
 def health_check():
     db_status = "ALIVE" if db is not None else "DEAD (Check your FIREBASE_SERVICE_ACCOUNT_JSON)"
