@@ -52,29 +52,29 @@ async def telegram_miniapp_auth(request: Request):
         if not verify_webapp_data(init_data):
             raise HTTPException(status_code=401, detail="Invalid Telegram signature")
         
-        if not db:
-            raise HTTPException(status_code=500, detail="Database not initialized. Check Vercel logs.")
-
         from urllib.parse import parse_qsl
         params = dict(parse_qsl(init_data))
         user_json = json.loads(params.get("user", "{}"))
         user_id = str(user_json.get("id"))
         
         has_phone = False
-        try:
-            user_doc = db.collection("users").document(user_id).get()
-            if user_doc.exists:
-                has_phone = "phone_number" in user_doc.to_dict()
-            else:
-                db.collection("users").document(user_id).set({
-                    "telegram_id": user_json.get("id"),
-                    "first_name": user_json.get("first_name"),
-                    "last_name": user_json.get("last_name"),
-                    "username": user_json.get("username"),
-                    "created_at": firestore.SERVER_TIMESTAMP
-                })
-        except Exception as e:
-            print(f"Firestore Error: {e}")
+        if db:
+            try:
+                user_doc = db.collection("users").document(user_id).get()
+                if user_doc.exists:
+                    has_phone = "phone_number" in user_doc.to_dict()
+                else:
+                    db.collection("users").document(user_id).set({
+                        "telegram_id": user_json.get("id"),
+                        "first_name": user_json.get("first_name"),
+                        "last_name": user_json.get("last_name"),
+                        "username": user_json.get("username"),
+                        "created_at": firestore.SERVER_TIMESTAMP
+                    })
+            except Exception as e:
+                print(f"Firestore Error: {e}")
+        else:
+            print("Running in Guest Mode (No Database)")
         
         return {"status": "success", "user_id": user_id, "has_phone": has_phone}
     except HTTPException as he:
