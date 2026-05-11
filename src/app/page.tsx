@@ -13,18 +13,31 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-      tg.expand();
-      
-      if (tg.initDataUnsafe?.user) {
-        setUser(tg.initDataUnsafe.user);
+    const initTg = () => {
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        
+        const userData = tg.initDataUnsafe?.user;
+        if (userData) {
+          setUser(userData);
+          setIsLoaded(true);
+        } else {
+          // If no user data yet, wait a bit and try again
+          setTimeout(initTg, 500);
+        }
+      } else {
+        // Not in Telegram
+        setTimeout(() => setIsLoaded(true), 2000);
       }
-    }
+    };
+
+    initTg();
   }, []);
 
   const handleStart = async () => {
@@ -75,7 +88,7 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 p-10 rounded-3xl shadow-2xl space-y-8 relative overflow-hidden">
+        <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 p-10 rounded-3xl shadow-2xl space-y-8 min-h-[300px] flex flex-col justify-center">
           {user ? (
             <div className="space-y-6 animate-in slide-in-from-bottom-4">
               <div className="relative mx-auto w-24 h-24">
@@ -99,9 +112,19 @@ export default function Home() {
               <button 
                 onClick={handleStart}
                 disabled={isAuthenticating}
-                className="w-full py-5 px-6 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-2xl font-bold text-xl shadow-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
+                className="w-full py-5 px-6 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-2xl font-bold text-xl shadow-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
               >
                 {isAuthenticating ? 'በማረጋገጥ ላይ...' : 'ውይይት ጀምር'}
+              </button>
+            </div>
+          ) : isLoaded ? (
+            <div className="space-y-6">
+              <p className="text-slate-400">የቴሌግራም መረጃን በራስ-ሰር ማግኘት አልተቻለም።</p>
+              <button 
+                onClick={handleStart}
+                className="w-full py-5 px-6 bg-slate-800 border border-white/10 rounded-2xl font-bold text-xl hover:bg-slate-700 transition-all"
+              >
+                በእጅ ጀምር (Start Manually)
               </button>
             </div>
           ) : (
