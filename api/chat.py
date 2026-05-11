@@ -65,6 +65,15 @@ def stream_chat(message: str, history=None):
         yield "ይቅርታ፣ የ AI አገልግሎት ለጊዜው አልተገኘም። እባክዎን ቆይተው ይሞክሩ።"
         return
 
+    if message.lower() == "list models":
+        try:
+            model_list = [m.name for m in client.models.list()]
+            yield f"Your API key can see these models: {', '.join(model_list)}"
+            return
+        except Exception as e:
+            yield f"Diagnostic Error: {str(e)}"
+            return
+
     try:
         # Convert history to new format if needed
         # New SDK uses list of Content objects
