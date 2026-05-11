@@ -15,7 +15,7 @@ try:
 except Exception as e:
     print(f"FAILED TO CONFIGURE GEMINI: {e}")
 
-MODEL_NAME = "gemini-1.5-flash"
+MODEL_NAME = "gemini-pro"
 
 SAFETY_PROMPT = """
 You are a specialized safety classifier for an Ethiopian mental health chatbot.
