@@ -4,6 +4,7 @@ from .auth import verify_telegram_data, verify_webapp_data
 from .chat import check_safety, stream_chat
 from .db import db
 from .alerts import send_admin_alert
+from firebase_admin import firestore
 import json
 import asyncio
 
@@ -132,5 +133,4 @@ async def chat_endpoint(request: Request):
             
     return StreamingResponse(generate(), media_type="text/event-stream")
 
-# Add a fake firestore for types if needed or just import it
-from firebase_admin import firestore
+# Firestore import moved to top

@@ -58,7 +58,8 @@ def verify_webapp_data(init_data: str) -> bool:
         # Secret key
         import hmac
         import hashlib
-        secret_key = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
+        token = BOT_TOKEN or ""
+        secret_key = hmac.new(b"WebAppData", token.encode(), hashlib.sha256).digest()
         calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
         
         return calculated_hash == received_hash
