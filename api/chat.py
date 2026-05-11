@@ -1,21 +1,24 @@
 import os
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import json
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Safely configure genai
-try:
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if api_key:
-        genai.configure(api_key=api_key)
-    else:
-        print("WARNING: GEMINI_API_KEY is missing from environment")
-except Exception as e:
-    print(f"FAILED TO CONFIGURE GEMINI: {e}")
+# Initialize the new Google GenAI Client
+def get_client():
+    try:
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            print("WARNING: GEMINI_API_KEY is missing")
+            return None
+        return genai.Client(api_key=api_key)
+    except Exception as e:
+        print(f"FAILED TO INITIALIZE GENAI CLIENT: {e}")
+        return None
 
-MODEL_NAME = "gemini-pro"
+MODEL_NAME = "gemini-1.5-flash"
 
 SAFETY_PROMPT = """
 You are a specialized safety classifier for an Ethiopian mental health chatbot.
@@ -37,61 +40,46 @@ CHAT_SYSTEM_INSTRUCTION = """
 ጠቃሚ ማሳሰቢያ፡ አንተ ዶክተር አይደለህም፣ ስለዚህ የህክምና ምርመራ ወይም መድኃኒት አታዝዝ።
 """
 
-def get_safety_classifier():
-    try:
-        return genai.GenerativeModel(
-            model_name=MODEL_NAME,
-            system_instruction=SAFETY_PROMPT
-        )
-    except Exception as e:
-        print(f"Error creating safety model: {e}")
-        return None
-
-def get_chat_model():
-    try:
-        return genai.GenerativeModel(
-            model_name=MODEL_NAME,
-            system_instruction=CHAT_SYSTEM_INSTRUCTION
-        )
-    except Exception as e:
-        print(f"Error creating chat model: {e}")
-        return None
-
 async def check_safety(message: str):
-    model = get_safety_classifier()
-    if not model:
-        return {"is_critical": False, "reason": "model_init_failed"}
+    client = get_client()
+    if not client:
+        return {"is_critical": False, "reason": "client_init_failed"}
     
     try:
-        response = await model.generate_content_async(message)
-        content = response.text.strip()
-        if "```json" in content:
-            content = content.split("```json")[1].split("```")[0].strip()
-        return json.loads(content)
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=message,
+            config=types.GenerateContentConfig(
+                system_instruction=SAFETY_PROMPT,
+                response_mime_type="application/json"
+            )
+        )
+        return json.loads(response.text)
     except Exception as e:
-        print(f"Error parsing safety response: {e}")
-        return {"is_critical": False, "reason": "error"}
+        print(f"Error in safety check: {e}")
+        return {"is_critical": False, "reason": str(e)}
 
 def stream_chat(message: str, history=None):
-    if message.lower() == "list models":
-        try:
-            models = [m.name for m in genai.list_models()]
-            yield f"Available models: {', '.join(models)}"
-            return
-        except Exception as e:
-            yield f"Error listing models: {e}"
-            return
-
-    model = get_chat_model()
-    if not model:
+    client = get_client()
+    if not client:
         yield "ይቅርታ፣ የ AI አገልግሎት ለጊዜው አልተገኘም። እባክዎን ቆይተው ይሞክሩ።"
         return
 
     try:
-        chat = model.start_chat(history=history or [])
-        response = chat.send_message(message, stream=True)
+        # Convert history to new format if needed
+        # New SDK uses list of Content objects
+        
+        response = client.models.generate_content_stream(
+            model=MODEL_NAME,
+            contents=message,
+            config=types.GenerateContentConfig(
+                system_instruction=CHAT_SYSTEM_INSTRUCTION
+            )
+        )
+        
         for chunk in response:
-            yield chunk.text
+            if chunk.text:
+                yield chunk.text
     except Exception as e:
         print(f"Chat streaming error: {e}")
         yield f"AI Error: {str(e)}"
