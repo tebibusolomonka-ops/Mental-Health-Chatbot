@@ -87,4 +87,4 @@ def stream_chat(message: str, user_name: str = "ተጠቃሚ", history=None):
                 continue
             break
             
-    yield "ይቅርታ፣ ውይይቱን መቀጠል አልቻልኩም። እባክዎን ቆይተው ይሞክሩ።"
+    yield f"AI Error: {str(e)}"
