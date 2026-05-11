@@ -16,8 +16,8 @@ def get_client():
         print(f"FAILED TO INITIALIZE GENAI CLIENT: {e}")
         return None
 
-# Use the specific models discovered in your diagnostic list
-MODEL_NAMES = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.0-flash-lite", "gemini-pro"]
+# Use the flash-latest version which has a higher free tier quota
+MODEL_NAMES = ["gemini-flash-latest", "gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-pro-latest"]
 
 SAFETY_PROMPT = """
 You are a specialized safety classifier for an Ethiopian mental health chatbot.
