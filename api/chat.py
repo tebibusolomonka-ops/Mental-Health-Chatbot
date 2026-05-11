@@ -16,28 +16,34 @@ def get_client():
         print(f"FAILED TO INITIALIZE GENAI CLIENT: {e}")
         return None
 
-# Use the flash-latest version which has a higher free tier quota
-MODEL_NAMES = ["gemini-flash-latest", "gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-pro-latest"]
+# Preferred models based on diagnostic results
+MODEL_NAMES = ["gemini-flash-latest", "gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash"]
 
 SAFETY_PROMPT = """
 You are a specialized safety classifier for an Ethiopian mental health chatbot.
-Output ONLY a JSON object: {"is_critical": boolean, "reason": "string"}
+Your task is to analyze the user's message in Amharic.
+Determine if the message indicates "Critical Intent" (suicide, self-harm, severe psychological crisis, or immediate danger).
+
+Output ONLY a JSON object:
+{
+  "is_critical": boolean,
+  "reason": "short explanation in English"
+}
 """
 
 CHAT_SYSTEM_INSTRUCTION = """
 የአእምሮ ጤና ግንዛቤ ረዳት ነህ። የምትግባባው በአማርኛ ብቻ ነው።
 ባህሪህ፡ ደጋፊ፣ አጽናኝ እና የህክምና ምክር የማይሰጥ (non-medical) ረዳት ነህ።
+ባህላዊ የአማርኛ ፈሊጦችን እና አባባሎችን ተጠቀም (ለምሳሌ፡ "አይዞህ/አይዞሽ"፣ "ለክፉ አይስጥህ"፣ "ፈጣሪ ያበርታህ")።
+ግብህ፡ ለተጠቃሚው ማጽናኛ መስጠት እና ግንዛቤ መፍጠር ነው።
+ጠቃሚ ማሳሰቢያ፡ አንተ ዶክተር አይደለህም፣ ስለዚህ የህክምና ምርመራ ወይም መድኃኒት አታዝዝ።
 """
 
 async def check_safety(message: str):
-    if message.lower() == "list models":
-        return {"is_critical": False, "reason": "debug"}
-        
     client = get_client()
     if not client:
         return {"is_critical": False, "reason": "no_client"}
     
-    # Try models until one works
     for model_name in MODEL_NAMES:
         try:
             response = client.models.generate_content(
@@ -51,27 +57,16 @@ async def check_safety(message: str):
             return json.loads(response.text)
         except Exception as e:
             if "404" in str(e):
-                continue # Try next model
+                continue
             return {"is_critical": False, "reason": str(e)}
-    return {"is_critical": False, "reason": "all_models_failed"}
+    return {"is_critical": False, "reason": "failed"}
 
 def stream_chat(message: str, history=None):
     client = get_client()
     if not client:
-        yield "AI Client Error"
+        yield "ይቅርታ፣ አገልግሎቱ ለጊዜው ተቋርጧል።"
         return
 
-    if message.lower() == "list models":
-        try:
-            model_list = [m.name for m in client.models.list()]
-            yield f"Supported models for your key: {', '.join(model_list)}"
-            return
-        except Exception as e:
-            yield f"Diagnostic Error: {str(e)}"
-            return
-
-    # Try models until one works
-    last_error = ""
     for model_name in MODEL_NAMES:
         try:
             response = client.models.generate_content_stream(
@@ -84,11 +79,10 @@ def stream_chat(message: str, history=None):
             for chunk in response:
                 if chunk.text:
                     yield chunk.text
-            return # Success!
+            return
         except Exception as e:
-            last_error = str(e)
-            if "404" in last_error:
+            if "404" in str(e):
                 continue
             break
             
-    yield f"AI Error after trying all models: {last_error}"
+    yield "ይቅርታ፣ ውይይቱን መቀጠል አልቻልኩም። እባክዎን ቆይተው ይሞክሩ።"

@@ -1,18 +1,66 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+declare global {
+  interface Window {
+    Telegram: any;
+  }
+}
+
 export default function Home() {
+  const [user, setUser] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const router = useRouter();
 
-  const handleGuestLogin = () => {
-    const guestUser = {
-      internal_id: 'guest_user',
-      first_name: 'Guest',
-      username: 'guest'
-    };
-    localStorage.setItem('chat_user', JSON.stringify(guestUser));
-    router.push('/chat');
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp;
+      tg.ready();
+      tg.expand();
+      
+      if (tg.initDataUnsafe?.user) {
+        setUser(tg.initDataUnsafe.user);
+      }
+    }
+  }, []);
+
+  const handleStart = async () => {
+    if (!window.Telegram?.WebApp) {
+      setError('እባክዎን ይህን መተግበሪያ በቴሌግራም ውስጥ ይክፈቱት።');
+      return;
+    }
+
+    setIsAuthenticating(true);
+    setError(null);
+
+    try {
+      const tg = window.Telegram.WebApp;
+      const response = await fetch('/api/auth/telegram-miniapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData: tg.initData }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const chatUser = {
+          ...user,
+          internal_id: data.user_id,
+        };
+        localStorage.setItem('chat_user', JSON.stringify(chatUser));
+        router.push('/chat');
+      } else {
+        const detail = await response.json();
+        setError(`ምዝገባው አልተሳካም: ${detail.detail || 'የማይታወቅ ስህተት'}`);
+      }
+    } catch (err: any) {
+      setError(`የግንኙነት ስህተት: ${err.message || 'ሊገናኝ አልቻለም'}`);
+    } finally {
+      setIsAuthenticating(false);
+    }
   };
 
   return (
@@ -27,15 +75,41 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 p-10 rounded-3xl shadow-2xl space-y-8">
-          <p className="text-slate-300">የቻትቦቱን አገልግሎት ለመሞከር ከታች ያለውን ቁልፍ ይጫኑ።</p>
-          
-          <button 
-            onClick={handleGuestLogin}
-            className="w-full py-5 px-6 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-2xl font-bold text-xl shadow-xl hover:scale-105 active:scale-95 transition-all"
-          >
-            እንደ እንግዳ ጀምር (Start as Guest)
-          </button>
+        <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 p-10 rounded-3xl shadow-2xl space-y-8 relative overflow-hidden">
+          {user ? (
+            <div className="space-y-6 animate-in slide-in-from-bottom-4">
+              <div className="relative mx-auto w-24 h-24">
+                <div className="absolute inset-0 bg-gradient-to-tr from-blue-500 to-emerald-500 rounded-full animate-pulse blur-xl opacity-50" />
+                <div className="relative w-full h-full rounded-full bg-slate-800 border-2 border-white/20 flex items-center justify-center text-3xl font-bold">
+                  {user.first_name?.[0]}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold">ሰላም {user.first_name}!</h2>
+                <p className="text-slate-400">ለመጀመር ከታች ያለውን ቁልፍ ይጫኑ</p>
+              </div>
+
+              {error && (
+                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <button 
+                onClick={handleStart}
+                disabled={isAuthenticating}
+                className="w-full py-5 px-6 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-2xl font-bold text-xl shadow-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {isAuthenticating ? 'በማረጋገጥ ላይ...' : 'ውይይት ጀምር'}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-slate-400">የቴሌግራም መረጃን በመጫን ላይ...</p>
+            </div>
+          )}
         </div>
       </div>
     </main>
