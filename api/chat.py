@@ -85,4 +85,4 @@ def stream_chat(message: str, history=None):
             yield chunk.text
     except Exception as e:
         print(f"Chat streaming error: {e}")
-        yield "ይቅርታ፣ ውይይቱን መቀጠል አልቻልኩም።"
+        yield f"AI Error: {str(e)}"
