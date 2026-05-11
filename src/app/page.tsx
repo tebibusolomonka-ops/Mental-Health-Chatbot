@@ -17,21 +17,33 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
+    // Check for existing session
+    const savedUser = localStorage.getItem('chat_user');
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        if (parsed.first_name) {
+          setUser(parsed);
+        }
+      } catch (e) {
+        localStorage.removeItem('chat_user');
+      }
+    }
+
     const initTg = () => {
       if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
         const tg = window.Telegram.WebApp;
         tg.ready();
-        tg.expand();
         
         const userData = tg.initDataUnsafe?.user;
         if (userData) {
           setUser(userData);
+        } else if (tg.initData) {
+          // If user object is missing but initData exists, we can still try to authenticate
+          setLoadingText('ዝግጁ ነን፣ ለመጀመር እዚህ ይጫኑ...');
         } else {
-          setLoadingText('የቴሌግራም መረጃን ለማግኘት እየሞከርን ነው...');
           setTimeout(initTg, 1000);
         }
-      } else {
-        setLoadingText('እባክዎን ይህን መተግበሪያ በቴሌግራም ውስጥ ይክፈቱት።');
       }
     };
 
@@ -40,8 +52,9 @@ export default function Home() {
 
   const handleStart = async () => {
     const tg = window.Telegram?.WebApp;
-    if (!tg || !tg.initData) {
-      setError('የቴሌግራም መለያዎ ሊረጋገጥ አልቻለም። እባክዎን በቦቱ በኩል ይሞክሩ።');
+    // Even if user is not in state, we can use tg.initData
+    if (!tg?.initData) {
+      setError('እባክዎን ይህን መተግበሪያ በቴሌግራም ውስጥ ይክፈቱት።');
       return;
     }
 
@@ -60,6 +73,7 @@ export default function Home() {
       if (response.ok) {
         const chatUser = {
           ...(user || {}),
+          first_name: user?.first_name || data.user_id,
           internal_id: data.user_id,
         };
         localStorage.setItem('chat_user', JSON.stringify(chatUser));
@@ -87,12 +101,12 @@ export default function Home() {
         </div>
 
         <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 p-10 rounded-3xl shadow-2xl space-y-8 min-h-[300px] flex flex-col justify-center">
-          {user ? (
+          {user || (typeof window !== 'undefined' && window.Telegram?.WebApp?.initData) ? (
             <div className="space-y-6">
               <div className="relative mx-auto w-24 h-24 rounded-full bg-slate-800 border-2 border-white/20 flex items-center justify-center text-3xl font-bold">
-                {user.first_name?.[0]}
+                {user?.first_name?.[0] || '?'}
               </div>
-              <h2 className="text-3xl font-bold">ሰላም {user.first_name}!</h2>
+              <h2 className="text-3xl font-bold">ሰላም {user?.first_name || 'ወዳጄ'}!</h2>
               
               {error && (
                 <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
@@ -103,7 +117,7 @@ export default function Home() {
               <button 
                 onClick={handleStart}
                 disabled={isAuthenticating}
-                className="w-full py-5 px-6 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-2xl font-bold text-xl hover:scale-105 transition-all shadow-lg shadow-blue-500/20"
+                className="w-full py-5 px-6 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-2xl font-bold text-xl hover:scale-105 transition-all shadow-lg"
               >
                 {isAuthenticating ? 'በማረጋገጥ ላይ...' : 'ውይይት ጀምር'}
               </button>
@@ -113,12 +127,11 @@ export default function Home() {
               <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="text-slate-400">{loadingText}</p>
               
-              {/* Fallback button if user info is slow */}
               <button 
                 onClick={handleStart}
-                className="text-sm text-blue-400 underline opacity-50 hover:opacity-100 transition-opacity"
+                className="text-sm text-blue-400 underline opacity-50 hover:opacity-100"
               >
-                መረጃው ካልመጣ እዚህ ይጫኑ (Click here if stuck)
+                መረጃው ካልመጣ እዚህ ይጫኑ (Skip Loading)
               </button>
             </div>
           )}
