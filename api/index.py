@@ -14,11 +14,11 @@ CRITICAL_RESPONSE_AMHARIC = """
 ህይወትዎ ዋጋ አለው፣ ብቻዎን አይደሉም።
 """
 
-@app.get("/api/health")
+@app.get("/health")
 def health_check():
     return {"status": "ok"}
 
-@app.post("/api/auth/telegram")
+@app.post("/auth/telegram")
 async def telegram_auth(request: Request):
     data = await request.json()
     if not verify_telegram_data(data.copy()):
@@ -39,7 +39,7 @@ async def telegram_auth(request: Request):
     
     return {"status": "success", "user_id": user_id}
 
-@app.post("/api/auth/telegram-miniapp")
+@app.post("/auth/telegram-miniapp")
 async def telegram_miniapp_auth(request: Request):
     data = await request.json()
     init_data = data.get("initData")
@@ -68,7 +68,7 @@ async def telegram_miniapp_auth(request: Request):
     
     return {"status": "success", "user_id": user_id, "has_phone": has_phone}
 
-@app.post("/api/auth/save-phone")
+@app.post("/auth/save-phone")
 async def save_phone(request: Request):
     data = await request.json()
     user_id = str(data.get("user_id"))
@@ -85,7 +85,7 @@ async def save_phone(request: Request):
     
     return {"status": "success"}
 
-@app.post("/api/chat")
+@app.post("/chat")
 async def chat_endpoint(request: Request):
     data = await request.json()
     message = data.get("message")
