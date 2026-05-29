@@ -16,8 +16,8 @@ def get_client():
         print(f"FAILED TO INITIALIZE GENAI CLIENT: {e}")
         return None
 
-# Preferred models based on your diagnostic results
-MODEL_NAMES = ["gemini-flash-latest", "gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-pro-latest"]
+# Preferred models based on current Gemini API offerings
+MODEL_NAMES = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite"]
 
 SAFETY_PROMPT = """
 You are a specialized safety classifier for an Ethiopian mental health chatbot.
@@ -56,18 +56,18 @@ async def check_safety(message: str):
             )
             return json.loads(response.text)
         except Exception as e:
-            if "404" in str(e):
-                continue
-            return {"is_critical": False, "reason": str(e)}
+            continue
     return {"is_critical": False, "reason": "failed"}
 
 def stream_chat(message: str, user_name: str = "ተጠቃሚ", history=None):
     client = get_client()
     if not client:
-        yield "ይቅርታ፣ አገልግሎቱ ለጊዜው ተቋርጧል።"
+        yield "ይቅርታ፣ አገልግሎቱ ለጊዜው ተቋርጧል። (API Key missing)"
         return
 
     personalized_instruction = CHAT_SYSTEM_INSTRUCTION + f"\nከተጠቃሚው ጋር ስታወራ ስሙን ጥቀስ። የተጠቃሚው ስም፡ {user_name} ነው።"
+    
+    errors = []
 
     for model_name in MODEL_NAMES:
         try:
@@ -83,8 +83,7 @@ def stream_chat(message: str, user_name: str = "ተጠቃሚ", history=None):
                     yield chunk.text
             return
         except Exception as e:
-            if "404" in str(e):
-                continue
-            break
+            errors.append(f"{model_name}: {str(e)}")
+            continue
             
-    yield f"AI Error: {str(e)}"
+    yield f"AI Error. Please check your API key and quotas. Details: { ' | '.join(errors) }"

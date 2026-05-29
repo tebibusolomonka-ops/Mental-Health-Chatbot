@@ -15,8 +15,8 @@ except Exception as e:
     # Define fallbacks so the app still runs
     db = None
     verify_webapp_data = lambda x: False
-    check_safety = lambda x: {"is_critical": False}
-    stream_chat = lambda x: ["Error: System failed to load."]
+    async def check_safety(message): return {"is_critical": False}
+    def stream_chat(message, user_name="ተጠቃሚ", history=None): yield "Error: System failed to load."
 
 from firebase_admin import firestore
 
@@ -94,8 +94,17 @@ async def chat_endpoint(request: Request):
         if safety_result.get("is_critical"):
             return {"response": "Safety alert triggered.", "is_critical": True}
         
+        user_name = "ተጠቃሚ"
+        if db and user_id and user_id != "guest_user":
+            try:
+                user_doc = db.collection("users").document(str(user_id)).get()
+                if user_doc.exists:
+                    user_name = user_doc.to_dict().get("first_name", "ተጠቃሚ")
+            except:
+                pass
+
         def generate():
-            for chunk in stream_chat(message):
+            for chunk in stream_chat(message, user_name=user_name):
                 yield chunk
                 
         return StreamingResponse(generate(), media_type="text/event-stream")
