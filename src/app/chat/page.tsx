@@ -98,11 +98,11 @@ export default function ChatPage() {
       {/* Header */}
       <header className="p-4 border-b border-white/5 bg-slate-900/50 backdrop-blur-md flex justify-between items-center">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-emerald-500 flex items-center justify-center text-white font-bold">
-            አ
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-white flex items-center justify-center shadow-md">
+            <img src="/logo.png" alt="Aizoh Logo" className="w-full h-full object-cover" />
           </div>
           <div>
-            <h1 className="font-bold text-lg leading-tight">አይዞህ (Aizoh)</h1>
+            <h1 className="font-bold text-lg leading-tight">አይዞህ</h1>
             <p className="text-xs text-emerald-400">መስመር ላይ</p>
           </div>
         </div>

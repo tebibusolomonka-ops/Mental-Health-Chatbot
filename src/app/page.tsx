@@ -92,8 +92,11 @@ export default function Home() {
     <main className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950">
       <div className="max-w-md w-full space-y-8 text-center animate-in fade-in duration-1000">
         <div className="space-y-4">
+          <div className="mx-auto w-32 h-32 mb-6 bg-white rounded-full p-2 shadow-2xl shadow-blue-500/20 flex items-center justify-center overflow-hidden border-4 border-slate-800">
+            <img src="/logo.png" alt="Aizoh Robot Logo" className="w-full h-full object-contain" />
+          </div>
           <h1 className="text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-            አይዞህ (Aizoh)
+            አይዞህ
           </h1>
           <p className="text-xl text-slate-400 font-light">
             የአእምሮ ጤና ግንዛቤ ረዳት
