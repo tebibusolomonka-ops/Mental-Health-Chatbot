@@ -86,4 +86,4 @@ def stream_chat(message: str, user_name: str = "ተጠቃሚ", history=None):
             errors.append(f"{model_name}: {str(e)}")
             continue
             
-    yield f"AI Error. Please check your API key and quotas. Details: { ' | '.join(errors) }"
+    yield "ይቅርታ፣ አሁን ላይ ብዙ ተጠቃሚዎች ስላሉ ማስተናገድ አልቻልኩም። እባክዎ ጥቂት ቆይተው እንደገና ይሞክሩ።"
